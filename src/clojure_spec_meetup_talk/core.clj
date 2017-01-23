@@ -2,7 +2,8 @@
   (:require [clojure.spec :as spec]
             [clojure.spec.gen :as gen]
             [clojure.string :as str]
-            [clojure.spec :as s]))
+            [com.gfredericks.test.chuck.generators :as genc]
+            ))
 
 ;; First up, validation with predicates
 ;; (spec/valid? <predicates> 10)
@@ -86,23 +87,38 @@
                     (+ y (* radius (Math/sin (* rads r))))])
                  (range vertices))]
     (conj pts (last pts))))
-(s/def :poly/coordinates (s/with-gen
+(spec/def :poly/coordinates (spec/with-gen
                            coll?
                            #(gen/fmap (fn [[lon lat]] (list (circle-gen lon lat)))
-                                      (gen/tuple (s/gen ::longitude) (s/gen ::latitude)))))
+                                      (gen/tuple (spec/gen ::longitude) (spec/gen ::latitude)))))
 (spec/def :poly/geometry (spec/keys :req [:poly/type :poly/coordinates]))
 (spec/def :poly/feature (spec/keys :req-un [::id :poly/geometry :poly/type ::properties]))
 
-(spec/def :feat/geometry (s/or :poly/feature :pt/feature))
+(spec/def :feat/geometry (spec/or :poly/feature :pt/feature))
 (spec/def ::feature (spec/keys :req-un [::id :feature/type :feat/geometry ::properties]))
 
 (gen/sample (spec/gen :poly/feature))
 
-(spec/def ::feature-spec (s/keys :req-un
+(spec/def ::feature-spec (spec/keys :req-un
                                  [:gfeature/id :gfeature/type
                                   :gj/geometry :gfeature/properties]))
 
-(spec/def ::gj/features (spec/coll-of ::feature-spec))
-(spec/def ::fc/type #{"FeatureCollection"})
+(spec/def :gj/features (spec/coll-of ::feature-spec))
+(spec/def :fc/type #{"FeatureCollection"})
 (spec/def ::featurecollection-spec (spec/keys :req-un [:fc/type :gj/features]))
 
+(spec/def ::string-test (spec/with-gen #(> (count %) 200)
+                                      gen/string-alphanumeric))
+
+(gen/sample (spec/gen ::string-test)) ; custom gen?
+
+(spec/def ::string-test (spec/with-gen #(> (count %) 0)
+                                       gen/string-alphanumeric))
+(gen/sample (spec/gen ::string-test)) ; custom gen?
+
+
+(def sqlcol-regex #"[a-z][a-z0-9_]*")
+(spec/def ::regex (spec/with-gen
+                          (spec/and string? #(> (count %) 0) #(re-matches sqlcol-regex %))
+                          #(genc/string-from-regex sqlcol-regex)))
+(gen/sample (spec/gen ::regex)) ; custom gen?

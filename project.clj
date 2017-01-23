@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  [org.clojure/data.json "0.2.6"]
                  [camel-snake-kebab "0.4.0"]
+                 [com.gfredericks/test.chuck "0.2.7"]
                  [org.clojure/test.check "0.9.0"]])
