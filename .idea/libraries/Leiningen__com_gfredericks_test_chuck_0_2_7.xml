@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: com.gfredericks/test.chuck:0.2.7">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/gfredericks/test.chuck/0.2.7/test.chuck-0.2.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
