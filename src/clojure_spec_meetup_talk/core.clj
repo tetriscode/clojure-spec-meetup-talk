@@ -6,7 +6,7 @@
 
 ;; First up, validation with predicates
 ;; (s/valid? <predicates> 10)
-(s/valid? even? 10)
+(s/valid? even? 1)
 (s/valid? #(> (count %) 0) "2017-01-01T01:01:01Z")
 
 ; Defining a spec. Specs for GeoJSON http://geojson.org
@@ -25,7 +25,7 @@
 (s/def :wgs/coordinates (s/tuple ::longitude ::latitude))
 (s/valid? :wgs/coordinates [1.0 2.0])
 
-(s/explain :wgs/coordinates [1.8 2.8])
+(s/explain :wgs/coordinates [1.8 "d"])
 (def test-val [:test 2.8])
 (s/explain :wgs/coordinates test-val)
 (s/explain-str :wgs/coordinates test-val)
@@ -62,7 +62,8 @@
 (s/def :feature/type #{"Feature"})
 (s/def ::properties map?)
 
-(s/def ::feature (s/keys :req-un [:feature/type ::properties]))
+(s/def ::feature (s/keys :req-un [:feature/type ::geometry ::properties]
+                         ))
 (gen/sample (s/gen ::feature))
 
 (s/def ::properties (s/map-of string? (s/or :s string? :n number? :m map? :c coll?)))
@@ -71,9 +72,10 @@
 
 ;(s/def ::properties ::jsonobj) ; pegging the CPU time
 (s/def ::id (s/or :p pos-int? :s (s/and string? #(not (str/blank? %)))))
-(s/def ::feature (s/keys :req-un [::id :feature/type ::properties]))
+(s/def ::feature (s/keys :req-un [::id :feature/type ::geometry ::properties]))
 
 (gen/sample (s/gen ::feature))
+
 
 ; namespace point
 (s/def :pt/type #{"Point"})
@@ -91,10 +93,12 @@
                     (+ y (* radius (Math/sin (* rads r))))])
                  (range vertices))]
     (conj pts (last pts))))
+
 (s/def :poly/coordinates (s/with-gen
                            coll?
                            #(gen/fmap (fn [[lon lat]] (list (circle-gen lon lat)))
                                       (gen/tuple (s/gen ::longitude) (s/gen ::latitude)))))
+
 (s/def :poly/geometry (s/keys :req [:poly/type :poly/coordinates]))
 (s/def :poly/feature (s/keys :req-un [::id :poly/geometry :poly/type ::properties]))
 
@@ -102,22 +106,24 @@
 (s/def ::feature (s/keys :req-un [::id :feature/type :feat/geometry ::properties]))
 
 (gen/sample (s/gen :poly/feature))
+(s/def :gfeature/type (s/or :pt/type :poly/type))
 
 (s/def ::feature-spec (s/keys :req-un
-                                 [:gfeature/id :gfeature/type
-                                  :gj/geometry :gfeature/properties]))
+                                 [::id :gfeature/type
+                                  :feat/geometry ::properties]))
 
 (s/def :gj/features (s/coll-of ::feature-spec))
 (s/def :fc/type #{"FeatureCollection"})
 (s/def ::featurecollection-spec (s/keys :req-un [:fc/type :gj/features]))
+(gen/sample (s/gen ::featurecollection-spec))
 
 (s/def ::string-test (s/with-gen #(> (count %) 200)
-                                 gen/string-alphanumeric))
+                                 #(gen/fmap identity gen/string-alphanumeric)))
 
 (gen/sample (s/gen ::string-test)) ; custom gen?
 
 (s/def ::string-test (s/with-gen #(> (count %) 0)
-                                 gen/string-alphanumeric))
+                                 #(gen/fmap identity gen/string-alphanumeric)))
 (gen/sample (s/gen ::string-test)) ; custom gen?
 
 
